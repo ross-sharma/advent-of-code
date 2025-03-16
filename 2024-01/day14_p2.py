@@ -527,10 +527,10 @@ class Robot:
     pos: Position
     vel: Position
 
-    def step(self, n_steps):
+    def step(self, width, height):
         self.pos = (
-            self.pos[0] + n_steps * self.vel[0],
-            self.pos[1] + n_steps * self.vel[1],
+            (self.pos[0] + self.vel[0]) % width,
+            (self.pos[1] + self.vel[1]) % height,
         )
 
 
@@ -546,37 +546,32 @@ def parse(raw) -> list[Robot]:
     return robots
 
 
+def map_to_string(positions, width, height):
+    s = ""
+    for y in range(height):
+        for x in range(width):
+            s += "#" if (x, y) in positions else "."
+        s += "\n"
+    return s
+
+
 def main(puzzle_input, width, height):
     robots: list[Robot] = parse(puzzle_input)
-    quad1 = []
-    quad2 = []
-    quad3 = []
-    quad4 = []
-
-    h_sep = height // 2
-    w_sep = width // 2
-
-    for r in robots:
-        r.step(100)
-
-        x, y = r.pos[0] % width, r.pos[1] % height
-
-        if x == w_sep or y == h_sep:
-            continue
-
-        if x <= w_sep and y <= h_sep:
-            quad1.append(r)
-        elif x > w_sep and y <= h_sep:
-            quad2.append(r)
-        elif x > w_sep and y > h_sep:
-            quad4.append(r)
+    i = 0
+    while True:
+        for r in robots:
+            r.step(width, height)
+        i = i + 1
+        map_str = map_to_string(set(r.pos for r in robots), width, height)
+        if "#" * 10 in map_str:
+            print(map_str)
+            print("time:", i)
+            input("Press Enter to continue...")
         else:
-            quad3.append(r)
-
-    print(len(quad1), len(quad2), len(quad3), len(quad4))
-    print(len(quad1) * len(quad2) * len(quad3) * len(quad4))
+            if i % 1000 == 0:
+                print("time:", i)
 
 
 if __name__ == "__main__":
-    #main(_input_sm, 11, 7)
+    # main(_input_sm, 11, 7)
     main(_input_lg, 101, 103)
