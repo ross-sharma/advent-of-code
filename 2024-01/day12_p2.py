@@ -160,6 +160,7 @@ from pprint import pp  # noqa
 Position = tuple[int, int]
 Garden = dict[Position, str]
 Region = set[Position]
+ScanLine = list[tuple[Position, Position]]
 
 
 def parse(raw):
@@ -170,7 +171,7 @@ def parse(raw):
     return out
 
 
-def get_region(garden, pos: Position) -> tuple[Region, int]:
+def get_region(garden, pos: Position) -> tuple[Region, int, str]:
     perim = 0
     region: Region = set()
 
@@ -187,20 +188,87 @@ def get_region(garden, pos: Position) -> tuple[Region, int]:
         for coord in coords:
             if coord in processed:
                 continue
-
-            other_plant = garden.get(coord)
-            if other_plant == plant:
+            if garden.get(coord) == plant:
                 queue.add(coord)
             else:
                 perim += 1
 
         processed.add(pos)
 
-    return region, perim
+    return region, perim, plant
+
+
+def get_region_bounds(region: Region) -> tuple[int, int, int, int]:
+    pos = next(iter(region))
+    minx, miny = pos
+    maxx, maxy = pos
+
+    for x, y in region:
+        minx = min(x, minx)
+        miny = min(y, miny)
+        maxx = max(x, maxx)
+        maxy = max(y, maxy)
+
+    return minx, miny, maxx, maxy
+
+
+FIRST_IN = "V"
+SECOND_IN = "^"
+
+
+def is_edge(region: Region, pos1: Position, pos2: Position) -> tuple[bool, str]:
+    if pos1 in region and pos2 in region:
+        return False, ""
+    if pos1 not in region and pos2 not in region:
+        return False, ""
+
+    if pos1 in region:
+        return True, FIRST_IN
+    return True, SECOND_IN
+
+
+def count_segments_in_str(edge_str: str) -> int:
+    spl = edge_str.split(".")
+    total = 0
+    segs = [s for s in spl if s]
+
+    for seg in segs:
+        spl2 = [s for s in seg.split(FIRST_IN) if s]
+        spl3 = [s for s in seg.split(SECOND_IN) if s]
+        sub_segs = len(spl2) + len(spl3)
+        total += sub_segs
+
+    return total
+
+
+def count_segments_in_line(region: Region, line: ScanLine) -> int:
+    edge_str = ""
+    for top, bottom in line:
+        edge_found, direction = is_edge(region, top, bottom)
+        edge_str += direction if edge_found else "."
+    segs = count_segments_in_str(edge_str)
+    return segs
 
 
 def count_sides(region: Region) -> int:
-    return 1
+    minx, miny, maxx, maxy = get_region_bounds(region)
+    n_sides = 0
+
+    for y in range(miny - 1, maxy + 1):
+        line = []
+        for x in range(minx, maxx + 1):
+            top, bottom = (x, y), (x, y + 1)
+            line.append((top, bottom))
+        n_sides += count_segments_in_line(region, line)
+
+    for x in range(minx - 1, maxx + 1):
+        line = []
+        for y in range(miny, maxy + 1):
+            left, right = (x, y), (x + 1, y)
+            line.append((left, right))
+        n_sides += count_segments_in_line(region, line)
+
+    return n_sides
 
 
 def main(puzzle_input):
@@ -211,20 +279,41 @@ def main(puzzle_input):
     for pos in garden:
         if pos in processed:
             continue
-        region, _perim = get_region(garden, pos)
+        region, _perim, plant = get_region(garden, pos)
         processed.update(region)
-        area = len(region)
         n_sides = count_sides(region)
-        total += area * n_sides
+        print(plant, n_sides)
+        total += len(region) * n_sides
 
     print(total)
 
 
 _input_xs = """
-R
+AAAA
+A.AA
+AA.A
+""".strip()
+
+test1 = """
+AAAAAA
+AAABBA
+AAABBA
+ABBAAA
+ABBAAA
+AAAAAA
+""".strip()
+
+test_e = """
+EEEEE
+EXXXX
+EEEEE
+EXXXX
+EEEEE
 """.strip()
 
 if __name__ == "__main__":
-    main(_input_xs)
+    # main(test_e)
+    # main(test1)
+    # main(_input_xs)
     # main(_input_sm)
-    # main(_input_lg)
+    main(_input_lg)
