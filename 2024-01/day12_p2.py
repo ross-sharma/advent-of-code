@@ -162,6 +162,10 @@ Garden = dict[Position, str]
 Region = set[Position]
 ScanLine = list[tuple[Position, Position]]
 
+FIRST_IN = "V"
+SECOND_IN = "^"
+NO_EDGE = "."
+
 
 def parse(raw):
     out = {}
@@ -212,41 +216,27 @@ def get_region_bounds(region: Region) -> tuple[int, int, int, int]:
     return minx, miny, maxx, maxy
 
 
-FIRST_IN = "V"
-SECOND_IN = "^"
-
-
-def is_edge(region: Region, pos1: Position, pos2: Position) -> tuple[bool, str]:
-    in1 = pos1 in region
-    in2 = pos2 in region
-    
-    if in1 == in2:
-        return False, ""
-
-    return True, FIRST_IN if in1 else SECOND_IN
-
-
 def count_segments_in_str(edge_str: str) -> int:
-    spl = edge_str.split(".")
     total = 0
-    segs = [s for s in spl if s]
-
-    for seg in segs:
-        spl2 = [s for s in seg.split(FIRST_IN) if s]
-        spl3 = [s for s in seg.split(SECOND_IN) if s]
-        sub_segs = len(spl2) + len(spl3)
+    for seg in edge_str.split(NO_EDGE):
+        spl1 = [s for s in seg.split(FIRST_IN) if s]
+        spl2 = [s for s in seg.split(SECOND_IN) if s]
+        sub_segs = len(spl1) + len(spl2)
         total += sub_segs
-
     return total
 
 
-def count_segments_in_line(region: Region, line: ScanLine) -> int:
+def scan_line_to_string(region: Region, line: ScanLine) -> str:
     edge_str = ""
-    for top, bottom in line:
-        edge_found, direction = is_edge(region, top, bottom)
-        edge_str += direction if edge_found else "."
-    segs = count_segments_in_str(edge_str)
-    return segs
+    for p1, p2 in line:
+        in1 = p1 in region
+        in2 = p2 in region
+        if in1 == in2:
+            edge_type = NO_EDGE
+        else:
+            edge_type = FIRST_IN if in1 else SECOND_IN
+        edge_str += edge_type
+    return edge_str
 
 
 def get_scan_lines(region: Region) -> list[ScanLine]:
@@ -273,7 +263,8 @@ def get_scan_lines(region: Region) -> list[ScanLine]:
 def count_sides(region: Region) -> int:
     n_sides = 0
     for line in get_scan_lines(region):
-        n_sides += count_segments_in_line(region, line)
+        edge_str = scan_line_to_string(region, line)
+        n_sides += count_segments_in_str(edge_str)
     return n_sides
 
 
