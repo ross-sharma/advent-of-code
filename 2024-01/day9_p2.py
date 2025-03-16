@@ -63,16 +63,10 @@ def move_file(fs, tail_p, write_idx, size):
 
 
 def pack(exp):
-	step = False
 	out = exp.copy()
 	tail_p = len(exp) - 1
 
 	while tail_p >= 1:
-		if step:
-			debug_fs(out)
-			print( (" " * tail_p) + "^tp" )
-			input("enter to continue")
-
 		data = out[tail_p]
 
 		if data == ".":
@@ -80,15 +74,10 @@ def pack(exp):
 			continue
 
 		f_size = get_file_size(out, data, tail_p)
-		f_head = tail_p - f_size + 1
 		write_idx = get_free_block(out, f_size)
 		
-		if step:
-			print(f"{write_idx=} {f_head=}")
-
-		if write_idx is not None:
-			if write_idx < f_head:
-				move_file(out, tail_p, write_idx, f_size)
+		if write_idx is not None and  write_idx < tail_p:
+			move_file(out, tail_p, write_idx, f_size)
 
 		tail_p -= f_size
 			
@@ -115,8 +104,8 @@ def main(puzzle_input):
 
 
 if __name__ == "__main__":
-	main(input_sm)
-	#main(input_lg)
+	#main(input_sm)
+	main(input_lg)
 	#main("111")
 	#main("122")
 
