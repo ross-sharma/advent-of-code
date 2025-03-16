@@ -1,7 +1,5 @@
 import dataclasses  # noqa
 from pprint import pp  # noqa
-from typing import Iterator
-
 
 _input_sm = """
 Button A: X+94, Y+34
@@ -1357,37 +1355,38 @@ def parse(raw) -> list[Machine]:
     return machines
 
 
-def get_solutions(mac: Machine) -> Iterator[tuple[int, int]]:
+def _solve(ax, ay, bx, by, px, py):
+    b1 = py - (ay * px / ax)
+    b2 = -bx * ay / ax + by
+    b = b1 / b2
+    a = px / ax - b * bx / ax
+    return a, b
+
+
+def get_solutions(mac: Machine) -> tuple[int, int]:
     ax, ay = mac.move_a
     bx, by = mac.move_b
-    prizex, prizey = mac.prize
-
-    for a_presses in range(101):
-        for b_presses in range(101):
-            x = a_presses * ax + b_presses * bx
-            y = a_presses * ay + b_presses * by
-            if (x, y) == mac.prize:
-                yield a_presses, b_presses
-            if x > prizex or y > prizey:
-                break
+    px, py = mac.prize
+    a, b = _solve(ax, ay, bx, by, px, py)
+    return a, b
 
 
 def solve(mac: Machine) -> int:
-    min_cost = None
+    a, b = get_solutions(mac)
+    a_int = round(a, 0)
+    b_int = round(b, 0)
+    threshold = 0.001
 
-    for a_presses, b_presses in get_solutions(mac):
-        cost = a_presses * mac.cost_a + b_presses * mac.cost_b
-        if min_cost is None or cost < min_cost:
-            min_cost = cost
-
-    if min_cost is None:
-        raise NoSolution
-    return min_cost
+    if abs(a - a_int) < threshold and abs(b - b_int) < threshold:
+        # print(f"Solution accepted: {a, b}")
+        return a * mac.cost_a + b * mac.cost_b
+    else:
+        print(f"Solution rejected: {a, b}")
+    raise NoSolution
 
 
 def main(puzzle_input):
     machines: list[Machine] = parse(puzzle_input)
-    pp(machines)
     total = 0
     for m in machines:
         try:
@@ -1399,5 +1398,6 @@ def main(puzzle_input):
 
 
 if __name__ == "__main__":
-    main(_input_sm)
-    #main(_input_lg)
+    # main(_input_sm)
+    main(_input_lg)
+# print(_solve(94, 34, 22, 67, 8400, 5400))
