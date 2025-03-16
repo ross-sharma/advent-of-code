@@ -217,14 +217,13 @@ SECOND_IN = "^"
 
 
 def is_edge(region: Region, pos1: Position, pos2: Position) -> tuple[bool, str]:
-    if pos1 in region and pos2 in region:
-        return False, ""
-    if pos1 not in region and pos2 not in region:
+    in1 = pos1 in region
+    in2 = pos2 in region
+    
+    if in1 == in2:
         return False, ""
 
-    if pos1 in region:
-        return True, FIRST_IN
-    return True, SECOND_IN
+    return True, FIRST_IN if in1 else SECOND_IN
 
 
 def count_segments_in_str(edge_str: str) -> int:
@@ -250,24 +249,31 @@ def count_segments_in_line(region: Region, line: ScanLine) -> int:
     return segs
 
 
-def count_sides(region: Region) -> int:
+def get_scan_lines(region: Region) -> list[ScanLine]:
     minx, miny, maxx, maxy = get_region_bounds(region)
-    n_sides = 0
+    lines = []
 
     for y in range(miny - 1, maxy + 1):
         line = []
         for x in range(minx, maxx + 1):
             top, bottom = (x, y), (x, y + 1)
             line.append((top, bottom))
-        n_sides += count_segments_in_line(region, line)
+        lines.append(line)
 
     for x in range(minx - 1, maxx + 1):
         line = []
         for y in range(miny, maxy + 1):
             left, right = (x, y), (x + 1, y)
             line.append((left, right))
-        n_sides += count_segments_in_line(region, line)
+        lines.append(line)
 
+    return lines
+
+
+def count_sides(region: Region) -> int:
+    n_sides = 0
+    for line in get_scan_lines(region):
+        n_sides += count_segments_in_line(region, line)
     return n_sides
 
 
