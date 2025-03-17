@@ -91,7 +91,12 @@ vv<><v^^><v>^^^v<v^<<><v^^><v<<<><^^vv>^v<<v<>><><vvv<^v>>^><v^vv>>>^>vv>><>>^<<
 from pprint import pp  # noqa
 
 
-Position = tuple[int, int]
+@dataclasses.dataclass(frozen=True)
+class Position:
+    x: int
+    y: int
+
+
 Floor = dict[Position, str]
 
 ROBOT = "@"
@@ -108,9 +113,10 @@ def parse(raw):
     robot_pos = None
     for y, line in enumerate(floor_str.split("\n")):
         for x, char in enumerate(line):
-            floor[(x, y)] = char
+            pos = Position(x, y)
+            floor[pos] = char
             if char == ROBOT:
-                robot_pos = (x, y)
+                robot_pos = pos
     return (
         floor,
         movements.replace("\n", ""),
@@ -124,7 +130,7 @@ def floor_to_string(floor: Floor, width, height):
     s = ""
     for y in range(height):
         for x in range(width):
-            s += floor[(x, y)]
+            s += floor[Position(x, y)]
         s += "\n"
     return s
 
@@ -134,24 +140,40 @@ def move_item(floor: Floor, from_pos: Position, to_pos: Position):
     floor[from_pos] = SPACE
 
 
-def do_move(floor: Floor, move: str, robot_pos: Position) -> Position:
-    to_pos = None
+_offsets = {
+    "^": (0, -1),
+    ">": (1, 0),
+    "v": (0, 1),
+    "<": (-1, 0),
+}
+
+
+def do_move(floor: Floor, move: str, item_pos: Position) -> Position:
     if move == "^":
-        to_pos = (robot_pos[0], robot_pos[1] - 1)
+        to_pos = Position(item_pos.x, item_pos.y - 1)
     elif move == ">":
-        to_pos = (robot_pos[0] + 1, robot_pos[1])
+        to_pos = Position(item_pos.x + 1, item_pos.y)
     elif move == "v":
-        to_pos = (robot_pos[0], robot_pos[1] + 1)
+        to_pos = Position(item_pos.x, item_pos.y + 1)
     elif move == "<":
-        to_pos = (robot_pos[0] - 1, robot_pos[1])
+        to_pos = Position(item_pos.x - 1, item_pos.y)
     else:
-        raise ValueError(f"Invalid move: {move}")
+        raise Exception(f"Invalid move: {move}")
 
     if floor[to_pos] == SPACE:
-        move_item(floor, robot_pos, to_pos)
+        move_item(floor, item_pos, to_pos)
         return to_pos
 
-    return robot_pos
+    if floor[to_pos] == WALL:
+        return item_pos
+
+    new_pos = do_move(floor, move, to_pos)
+    if new_pos == to_pos:
+        # The box didn't move
+        return item_pos
+    else:
+        move_item(floor, item_pos, to_pos)
+        return to_pos
 
 
 def main(puzzle_input):
