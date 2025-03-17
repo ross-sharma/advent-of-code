@@ -14,6 +14,30 @@ _input_sm = """
 <^^>>>vv<v>>v<<
 """.strip()
 
+_input_md = """
+##########
+#..O..O.O#
+#......O.#
+#.OO..O.O#
+#..O@..O.#
+#O#..O...#
+#O..O..O.#
+#.OO.O.OO#
+#....O...#
+##########
+
+<vv>^<v^>v>^vv^v>v<>v^v<v<^vv<<<^><<><>>v<vvv<>^v^>^<<<><<v<<<v^vv^v>^
+vvv<<^>^v^^><<>>><>^<<><^vv^^<>vvv<>><^^v>^>vv<>v<<<<v<^v>^<^^>>>^<v<v
+><>vv>v^v^<>><>>>><^^>vv>v<^^^>>v^v^<^^>v^^>v^<^v>v<>>v^v^<v>v^^<^^vv<
+<<v<^>>^^^^>>>v^<>vvv^><v<<<>^^^vv^<vvv>^>v<^^^^v<>^>vvvv><>>v^<<^^^^^
+^><^><>>><>^^<<^^v>>><^<v>^<vv>>v>>>^v><>^v><<<<v>>v<v<v>vvv>^<><<>^><
+^>><>^v<><^vvv<^^<><v<<<<<><^v<<<><<<^^<v<^^^><^>>^<v^><<<^>>^v<v^v<v^
+>^>>^v>vv>^<<^v<>><<><<v<<v><>v<^vv<<<>^^v^>^^>>><<^v>>v^v><^^>>^<>vv^
+<><^^>^^^<><vvvvv^v<v<<>^v<v>v<<^><<><<><<<^^<<<^<<>><<><^^^>^^<>^>v<>
+^^>vv<^v^v<vv>^<><v<^v>^^^>>>^^vvv^>vvv<>>>^<^>>>>>^<<^v>^vvv<>^<><<v>
+v^^>>><<^^<>>^v^<v^vv<>v^<<>^<^v^v><^<<<><<^<v><v<>vv>>v><v^<vv<>v^<<^
+"""
+
 _input_lg = """
 ##################################################
 #OO#..O#......#...O.O..##..O.....O...O.......#...#
@@ -140,14 +164,6 @@ def move_item(floor: Floor, from_pos: Position, to_pos: Position):
     floor[from_pos] = SPACE
 
 
-_offsets = {
-    "^": (0, -1),
-    ">": (1, 0),
-    "v": (0, 1),
-    "<": (-1, 0),
-}
-
-
 def do_move(floor: Floor, move: str, item_pos: Position) -> Position:
     if move == "^":
         to_pos = Position(item_pos.x, item_pos.y - 1)
@@ -176,6 +192,14 @@ def do_move(floor: Floor, move: str, item_pos: Position) -> Position:
         return to_pos
 
 
+def checksum(floor: Floor) -> int:
+    total = 0
+    for pos, item in floor.items():
+        if item == BOX:
+            total += 100 * pos.y + pos.x
+    return total
+
+
 def main(puzzle_input):
     floor, moves, width, height, robot_pos = parse(puzzle_input)
     step = "step" in sys.argv
@@ -187,10 +211,10 @@ def main(puzzle_input):
             input("Press Enter to continue...")
         robot_pos = do_move(floor, move, robot_pos)
     print(floor_to_string(floor, width, height))
+    print(checksum(floor))
 
 
 if __name__ == "__main__":
-    # main(_test2)
-    # main(_input_test)
-    main(_input_sm)
-    # main(_input_lg)
+    # main(_input_md)
+    # main(_input_sm)
+    main(_input_lg)
