@@ -2,16 +2,15 @@ import dataclasses  # noqa
 import sys
 
 _input_sm = """
-########
-#..O.O.#
-##@.O..#
-#...O..#
-#.#.O..#
-#...O..#
-#......#
-########
+#######
+#...#.#
+#.....#
+#..OO@#
+#..O..#
+#.....#
+#######
 
-<^^>>>vv<v>>v<<
+<vv<<^^<<^^
 """.strip()
 
 _input_md = """
@@ -125,7 +124,8 @@ Floor = dict[Position, str]
 
 ROBOT = "@"
 WALL = "#"
-BOX = "O"
+BOX_L = "["
+BOX_R = "]"
 SPACE = "."
 
 
@@ -156,12 +156,15 @@ def parse(raw):
     )
 
 
-def floor_to_string(floor: Floor, width, height):
+def floor_to_string(floor: Floor):
     s = ""
-    for y in range(height):
-        for x in range(width):
-            s += floor[Position(x, y)]
-        s += "\n"
+    pos = Position(0, 0)
+    while pos in floor:
+        s += floor[pos]
+        pos = Position(pos.x + 1, pos.y)
+        if pos not in floor:
+            pos = Position(0, pos.y + 1)
+            s += "\n"
     return s
 
 
@@ -189,19 +192,39 @@ def do_move(floor: Floor, move: str, item_pos: Position) -> Position:
     if floor[to_pos] == WALL:
         return item_pos
 
+    if move == "<" or move == ">":
+        new_pos = do_move(floor, move, to_pos)
+        if new_pos == to_pos:
+            # The box didn't move
+            return item_pos
+        else:
+            move_item(floor, item_pos, to_pos)
+            return to_pos
+
+    if floor[to_pos] == BOX_L:
+        other_pos = Position(to_pos.x + 1, to_pos.y)
+    else:
+        other_pos = Position(to_pos.x - 1, to_pos.y)
+
+    backup = floor.copy()
+
     new_pos = do_move(floor, move, to_pos)
     if new_pos == to_pos:
-        # The box didn't move
         return item_pos
-    else:
-        move_item(floor, item_pos, to_pos)
-        return to_pos
+
+    new_pos = do_move(floor, move, other_pos)
+    if new_pos == other_pos:
+        for k, v in backup.items():
+            floor[k] = v
+        return item_pos
+    move_item(floor, item_pos, to_pos)
+    return to_pos
 
 
 def checksum(floor: Floor) -> int:
     total = 0
     for pos, item in floor.items():
-        if item == BOX:
+        if item == BOX_L:
             total += 100 * pos.y + pos.x
     return total
 
@@ -211,16 +234,29 @@ def main(puzzle_input):
     step = "step" in sys.argv
     for i, move in enumerate(moves):
         if step:
-            print(floor_to_string(floor, width, height))
+            print(floor_to_string(floor))
             print(f"Step {i}")
             print(f"Next move: {move}")
             input("Press Enter to continue...")
         robot_pos = do_move(floor, move, robot_pos)
-    print(floor_to_string(floor, width, height))
+    print(floor_to_string(floor))
     print(checksum(floor))
 
 
+_input_xs = """
+#######
+#...#.#
+#.....#
+#..OO@#
+#..O..#
+#.....#
+#######
+
+<vv<<^^<<^^
+"""
+
 if __name__ == "__main__":
-    main(_input_md)
-    #main(_input_sm)
-    #main(_input_lg)
+    # main(_input_xs)
+    # main(_input_md)
+    # main(_input_sm)
+    main(_input_lg)
