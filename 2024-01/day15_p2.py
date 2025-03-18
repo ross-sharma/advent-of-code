@@ -214,8 +214,7 @@ def do_move(floor: Floor, move: str, item_pos: Position) -> Position:
 
     new_pos = do_move(floor, move, other_pos)
     if new_pos == other_pos:
-        for k, v in backup.items():
-            floor[k] = v
+        floor.update(backup)
         return item_pos
     move_item(floor, item_pos, to_pos)
     return to_pos
