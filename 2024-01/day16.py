@@ -228,6 +228,17 @@ class StringGrid:
     def is_in_bounds(self, pos: Position):
         return 0 <= pos.x < self.width and 0 <= pos.y < self.height
 
+    def get(self, pos: Position) -> str:
+        return self._data[self.pos_to_index(pos)]
+
+    def set(self, pos: Position, symbol: str) -> None:
+        idx = self.pos_to_index(pos)
+        self._data = self._data[:idx] + symbol + self._data[idx + 1 :]
+        self._data_raw = self._data
+
+    def copy(self) -> "StringGrid":
+        return StringGrid(self._data)
+
 
 class Maze:
     class NoSolution(Exception):
@@ -247,80 +258,111 @@ class Maze:
 
     def __init__(self, floor_str: str):
         self._grid = StringGrid(floor_str)
-        self.pos = self._grid.find(Maze.START)
+        self.start = self._grid.find(Maze.START)
         self.end = self._grid.find(Maze.END)
         self.dir = Dirs.EAST
-        self.score = 0
 
     def __str__(self):
         s = str(self._grid)
-        idx = self._grid.pos_to_index(self.pos)
+        idx = self._grid.pos_to_index(self.start)
         return s[:idx] + Maze._dir_strs[self.dir] + s[idx + 1 :]
 
+    def path_string(self, path: Path) -> str:
+        grid = self._grid.copy()
+        for pos in path:
+            grid.set(pos, "P")
+        return str(grid)
+
     def solve(self) -> Path:
-        return self.__solve_rec(self.pos, self.end, [], {})
+        def h(pos: Position) -> int:
+            return abs(pos.x - self.end.x) + abs(pos.y - self.end.y)
 
-    def __solve_rec(
-        self,
-        pos: Position,
-        end: Position,
-        current_path: Path,
-        visited: dict[Position, Path],
-    ) -> Path:
-        current_path = current_path + [pos]
-        if pos == end:
-            return current_path
+        def reconstruct_path(_came_from, _current):
+            path = []
+            while _current in came_from:
+                path.append(_current)
+                _current = came_from[_current]
+            return path
 
-        if pos in visited:
-            other_path = visited[pos]
-            if other_path is None:
-                raise Maze.NoSolution()
-            return other_path
+        start = self.start
+        open_set = {start}
+        came_from = {}
+        position_dirs = {start: Dirs.EAST}
+        g_score = {start: 0}
+        f_score = {start: h(start)}
 
-        neighbors = [pos.add(d) for d in Dirs.ALL]
-        shortest_path = None
+        while open_set:
+            current = min(open_set, key=lambda pos: f_score[pos])
+            if current == self.end:
+                return reconstruct_path(came_from, current)
 
-        for n in neighbors:
-            if not self._grid.is_in_bounds(n):
-                continue
-            try:
-                if n in visited:
-                    other_path = visited[pos]
-                    if other_path is None:
-                         raise Maze.NoSolution()
-                else:
-                    other_path = self.__solve_rec(n, end, current_path, visited)
-            except Maze.NoSolution:
-                continue
+            open_set.remove(current)
+            for direction in Dirs.ALL:
+                neighbor = current.add(direction)
+                if not self._grid.is_in_bounds(neighbor):
+                    continue
+                if self._grid.get(neighbor) == Maze.WALL:
+                    continue
 
-            if shortest_path is None or len(other_path) < len(shortest_path):
-                shortest_path = other_path
+                from_dir = position_dirs[current]
+                turns = count_turns(from_dir, direction)
+                cost = 1000 * turns + 1
 
-        visited[pos] = shortest_path
+                tentative_gscore = g_score[current] + cost
+                if tentative_gscore < g_score.get(neighbor, float("inf")):
+                    came_from[neighbor] = current
+                    g_score[neighbor] = tentative_gscore
+                    f_score[neighbor] = tentative_gscore + h(neighbor)
+                    if neighbor not in open_set:
+                        open_set.add(neighbor)
+                        position_dirs[neighbor] = direction
 
-        if shortest_path is None:
-            raise Maze.NoSolution("No solution")
+        raise Maze.NoSolution()
 
-        return current_path + shortest_path
+
+def count_turns(start_dir: Position, end_dir: Position) -> int:
+    if start_dir == end_dir:
+        return 0
+    if start_dir.x == end_dir.x or start_dir.y == end_dir.y:
+        return 2
+    return 1
+
+
+def checksum(start: Position, path: Path) -> int:
+    current_dir = Dirs.EAST
+    current_pos = start
+    total = 0
+    for i in range(len(path) - 1, -1, -1):
+        next_pos = path[i]
+        next_dir = Position(next_pos.x - current_pos.x, next_pos.y - current_pos.y)
+        num_turns = count_turns(current_dir, next_dir)
+
+        total += num_turns * 1000 + 1
+        current_pos = next_pos
+        current_dir = next_dir
+
+    return total
 
 
 def main(puzzle_input):
     maze = Maze(puzzle_input)
     path = maze.solve()
-    print(maze)
-    print(path)
+    # print(maze)
+    # pp(path)
+    print(maze.path_string(path))
+    print(checksum(maze.start, path))
 
 
 _input_xs = """
-###
-#E#
-#S#
-###
+#####
+#..E#
+##S##
+#####
 """
 
 
 if __name__ == "__main__":
-    main(_input_xs)
+    # main(_input_xs)
     # main(_input_md)
-    # main(_input_sm)
-    # main(_input_lg)
+    #main(_input_sm)
+     main(_input_lg)
