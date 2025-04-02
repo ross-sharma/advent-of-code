@@ -3643,11 +3643,12 @@ def main(puzzle_input):
         Position(0, 0),
         Position(grid.width - 1, grid.height - 1),
     )
+    path_set = set(path)
 
     for i, pos in enumerate(drop_positions):
         grid.set(pos, Maze.WALL)
 
-        if pos not in path:
+        if pos not in path_set:
             continue
 
         if i % 10 == 0:
@@ -3658,6 +3659,7 @@ def main(puzzle_input):
                 Position(0, 0),
                 Position(grid.width - 1, grid.height - 1),
             )
+            path_set = set(path)
         except Maze.NoSolution:
             print(f"Solution: {pos}")
             return
